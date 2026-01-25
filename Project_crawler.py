@@ -39,7 +39,7 @@ def parse_max_page(html:str) ->str :
 
 def parse_content_message(html:str)->str :
     soup = BeautifulSoup(html,"html.parser")
-    content_el = soup.select_one("div.c-article__content")
+    content_el = soup.select("div.c-article__content")
     if not content_el:
         return None
 
@@ -55,6 +55,31 @@ def parse_content_message(html:str)->str :
 
     text = "\n".join(lines).strip()
     return text
+
+def parse_Great_Bad_point(html:str) ->dict | None :
+    soup = BeautifulSoup(html,"html.parser")
+    GP_el = soup.select_one("span.postgp > span")
+    BP_el = soup.select_one("span.postbp > span")
+    if not GP_el and not BP_el :
+        return None
+    def to_int(el):
+        if not el : return 0
+        text = el.get_text(strip=True)
+        return 0 if text=="-" else int(text)
+    return {"GP":to_int(GP_el),"BP":to_int(BP_el)}
+        
+    
+def parse_post_time(html:str) ->str :
+    soup = BeautifulSoup(html, "html.parser")
+    edit_el = soup.select_one("a.edittime")
+    if not edit_el :
+        return None
+    mtime = edit_el.get("data-mtime")
+    if not mtime :
+        return None
+    return parse_dt(mtime)
+
+    
         
     
     
