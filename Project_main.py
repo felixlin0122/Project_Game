@@ -155,7 +155,7 @@ def crawl_and_save(list_page_html: str, base_url: str) -> int:
             sna_page_no = str(sna)+ "_" +str(page_no)
             save_nlp_page(conn, sna_page_no, page_url, content)
             saved += 1
-            time.sleep(random.uniform(2.5, 5.0))
+            time.sleep(random.uniform(2.0, 4.0))
             print(f"Page={page_no}/{max_page}")
         
     
@@ -177,4 +177,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    start_time = time.time()
     main()
+    alltime = time.time()-start_time
+    print(f"程式耗時：{int(alltime/3600)}小時，{int((alltime%3600)/60)}分鐘，{int(alltime%60)}秒")
