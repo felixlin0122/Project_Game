@@ -44,13 +44,21 @@ DEFAULT_HEADERS = {
 }
 
 
-def fetch_text(url: str, headers: Optional[Dict[str, str]] = None, timeout: int = 15) -> str:
+def fetch_text(url: str, headers: Optional[Dict[str, str]] = None, timeout: int = 15, fetch: int = 3) -> str:
     merged_headers = dict(DEFAULT_HEADERS)
     if headers:
         merged_headers.update(headers)
-    resp = requests.get(url, headers=merged_headers, timeout=timeout)
-    resp.raise_for_status()
-    return resp.text
+    for i in range(fetch):
+        try :
+            resp = requests.get(url, headers=merged_headers, timeout=timeout)
+            if resp.status_code== 200 :
+                return resp.text
+            print(f"[WARN] {resp.status_code} {url}")
+        except Exception as e :
+            print(f"ERROR:{e}")
+        time.sleep(7)
+    return None
+
 
 
 def save_article(conn, bsn: int, sna: int, title: str, article_page: int , 
@@ -69,8 +77,6 @@ def save_article(conn, bsn: int, sna: int, title: str, article_page: int ,
             """,
             (bsn, sna, title, article_page,article_create_time,great_point,bad_point),
         )
-
-    # print("ARTICLE rowcount:", cursor.rowcount, sna)
         
 
 
@@ -89,16 +95,20 @@ def save_nlp_page(conn, sna_article_page: str, article_url: str, content: str) -
             """,
             (sna_article_page, 0, content, article_url, "", 0.0),
         )
-    # print("NLP rowcount:", cursor.rowcount, sna_article_page)
 
 
 def build_article_page_url(url: str, page_no: int) -> str:
-    parsed = urlparse(url)
-    query = parse_qs(parsed.query)
-    query["page"] = [str(page_no)]
-    new_query = urlencode(query, doseq=True)
-    return urlunparse(parsed._replace(query=new_query))
+    u = urlparse(url)
+    q = parse_qs(u.query)
+    keep = {}
+    for k in ("bsn", "snA"):
+        if k in q and q[k]:
+            keep[k] = q[k][0]
 
+    keep["page"] = str(page_no)
+
+    new_query = urlencode(keep, doseq=True)
+    return urlunparse((u.scheme, u.netloc, u.path, u.params, new_query, u.fragment))
 
 def parse_sna(url: str) -> Optional[int]:
     parsed = urlparse(url)
@@ -114,8 +124,6 @@ def parse_sna(url: str) -> Optional[int]:
 
 def crawl_and_save(list_page_html: str, base_url: str) -> int:
     items = parse_article_title_link(list_page_html, base_url)
-    print("LIST_HTML_LEN:", len(list_page_html))
-    print("ITEMS:", len(items))
     if items:
         print("FIRST_URL:", items[0].get("url"))
 
@@ -123,6 +131,7 @@ def crawl_and_save(list_page_html: str, base_url: str) -> int:
         return 0
     conn = get_db_connection()
     saved = 0
+    count = 0
     for item in items:
         url = item.get("url")
         title = item.get("title") or ""
@@ -131,6 +140,8 @@ def crawl_and_save(list_page_html: str, base_url: str) -> int:
         sna = parse_sna(url)
         if sna is None:
             continue
+        count +=1
+        print(f"sna={sna},Article={count}/30")
         first_html = fetch_text(url)
         GP,BP = parse_Great_Bad_point(first_html) or (0,0)
         post_time = parse_post_time(first_html)
@@ -144,10 +155,11 @@ def crawl_and_save(list_page_html: str, base_url: str) -> int:
             sna_page_no = str(sna)+ "_" +str(page_no)
             save_nlp_page(conn, sna_page_no, page_url, content)
             saved += 1
-            time.sleep(random.uniform(0.5, 1.0))
-            print(f"sna={sna},page={page_no}/{max_page}")
+            time.sleep(random.uniform(2.5, 5.0))
+            print(f"Page={page_no}/{max_page}")
+        
     
-    time.sleep(random.uniform(1.0, 2.0))
+    time.sleep(random.uniform(3.0, 6.0))
     return saved
 
 
@@ -157,9 +169,10 @@ def main() -> None:
     base_url = Basehtml
     total = 0
     for outer_page in range(1, int(page) + 1):
+        print(f"bsn={Bsn},Page={outer_page}/{page}")
         list_url = f"{Basehtml}B.php?page={outer_page}&bsn={Bsn}"
         list_html = fetch_text(list_url)
-        total += crawl_and_save(list_html, base_url)
+        total += crawl_and_save(list_html, base_url)   
     print(f"Saved {total} pages.")
 
 

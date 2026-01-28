@@ -28,15 +28,23 @@ def parse_article_title_link(html:str,base_html:str)->dict :
         items.append({"title": title, "url": urljoin(base_html, href)})
     return items
 
-def parse_max_page(html:str) ->int :
-    soup = BeautifulSoup(html,"html.parser")
-    page = []
-    for a in soup.select("a[href*='page=']") :
-        href =  a.get("href","")
-        b = re.search(r"[?&]page=(\d+)",href)
-        if b :
-            page.append(int(b.group(1)))
-    return max(page) if page else None
+PAGE_RE = re.compile(r"[?&]page=(\d+)")
+
+def parse_max_page(html: str) -> int:
+    soup = BeautifulSoup(html, "html.parser")
+    pager = soup.select_one("p.BH-pagebtnA")
+    if not pager:
+        return 1
+
+    pages = [1]
+    for a in pager.select("a[href*='page=']"):
+        href = a.get("href", "")
+        m = PAGE_RE.search(href)
+        if m:
+            pages.append(int(m.group(1)))
+
+    return max(pages)
+
 
 
 def parse_content_message(html: str) -> str | None:
@@ -63,10 +71,6 @@ def parse_content_message(html: str) -> str | None:
         txt = c.get_text(" ", strip=True)
         if txt:
             lines.append(f"【留言】{idx}【{txt}")
-    # print("content_blocks:", len(content_blocks))
-    # print("comment_blocks:", len(comment_blocks))
-    
-
     final_text = " ".join(lines).strip()
     return final_text if final_text else None
 
