@@ -45,8 +45,6 @@ def parse_max_page(html: str) -> int:
 
     return max(pages)
 
-
-
 def parse_content_message(html: str) -> str | None:
     soup = BeautifulSoup(html, "html.parser")
 
@@ -74,18 +72,28 @@ def parse_content_message(html: str) -> str | None:
     final_text = " ".join(lines).strip()
     return final_text if final_text else None
 
-
-def parse_Great_Bad_point(html:str) ->tuple[int,int] | None :
-    soup = BeautifulSoup(html,"html.parser")
+def parse_Great_Bad_point(html: str) -> tuple[int, int] | None:
+    soup = BeautifulSoup(html, "html.parser")
     GP_el = soup.select_one("span.postgp > span")
     BP_el = soup.select_one("span.postbp > span")
-    if not GP_el and not BP_el :
+
+    if not GP_el and not BP_el:
         return None
-    def to_int(el):
-        if not el : return 0
+    def to_int(el) -> int:
+        if not el:
+            return 0
+
         text = el.get_text(strip=True)
-        return 0 if text=="-" else int(text)
-    return to_int(GP_el),to_int(BP_el)
+        if text == "-" or text == "":
+            return 0
+        if text == "爆":
+            return 999   
+        if text.isdigit():
+            return int(text)
+        return 0
+
+    return to_int(GP_el), to_int(BP_el)
+
         
     
 def parse_post_time(html:str) -> str :
@@ -97,13 +105,3 @@ def parse_post_time(html:str) -> str :
     if not mtime :
         return None
     return parse_dt(mtime)
-
-    
-        
-    
-    
-
-
-
-
-
