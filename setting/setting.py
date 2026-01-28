@@ -15,7 +15,6 @@ MYSQL_PASSWORD = require("MYSQL_PASSWORD")
 MYSQL_HOST = require("MYSQL_HOST")
 MYSQL_PORT = int(require("MYSQL_PORT"))
 MYSQL_DB = require("MYSQL_DB")
-NASA_API_KEY = require("NASA_API_KEY")
 
 Basehtml= require("Basehtml")
 Bsn = require("Bsn")
