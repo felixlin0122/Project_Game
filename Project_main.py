@@ -17,8 +17,8 @@ from setting.setting import (
     Basehtml,
     Bsn,
     page,
+    max_set_page,
 )
-
 
 def get_db_connection():
     return pymysql.connect(
@@ -136,7 +136,8 @@ def crawl_and_save(list_page_html: str, base_url: str) -> int:
         post_time = parse_post_time(first_html)
         max_page = parse_max_page(first_html) or 1
         save_article(conn, Bsn, sna, title, max_page,post_time,GP,BP)
-        for page_no in range(1, max_page + 1):
+        pages = min(max_page,int(max_set_page))
+        for page_no in range(1, pages + 1):
             page_url = build_article_page_url(url, page_no)
             page_html = first_html if page_no == 1 else fetch_text(page_url)
             content = parse_content_message(page_html) or ""
