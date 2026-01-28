@@ -19,6 +19,7 @@ MYSQL_DB = require("MYSQL_DB")
 Basehtml= require("Basehtml")
 Bsn = require("Bsn")
 page = require("page")
+max_set_page = require("max_set_page")
 
 
 
