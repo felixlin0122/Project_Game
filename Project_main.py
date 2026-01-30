@@ -1,13 +1,15 @@
 from typing import Optional, Dict, Iterable
-from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+from pathlib import Path
+import csv
+
 import time
 import random
 
 import pymysql
 import requests
 
-from Project_crawler import parse_article_title_link, parse_content_message, parse_max_page
-from Project_crawler import parse_Great_Bad_point,parse_post_time
+from Project_crawler import build_article_page_url,parse_article_title_link, parse_content_message
+from Project_crawler import parse_Great_Bad_point,parse_post_time,parse_sna, parse_max_page
 from setting.setting import (
     MYSQL_HOST,
     MYSQL_USER,
@@ -15,7 +17,6 @@ from setting.setting import (
     MYSQL_PORT,
     MYSQL_DB,
     Basehtml,
-    Bsn,
     page,
     max_set_page,
 )
@@ -31,7 +32,6 @@ def get_db_connection():
         autocommit=True
     )
 
-
 DEFAULT_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -42,7 +42,16 @@ DEFAULT_HEADERS = {
     "Accept-Language": "zh-TW,zh;q=0.9,en;q=0.8",
     "Connection": "keep-alive",
 }
-
+def gamename():
+    p = Path("pratice_P/game.csv")
+    bsn=[]
+    game_name=[]
+    with p.open("r",encoding="utf-8",newline="") as f :
+        reader = csv.DictReader(f)
+        for row in reader :
+            bsn.append( row["Bsn"])
+            game_name.append(row["Gamename"])           
+    return bsn,game_name
 
 def fetch_text(url: str, headers: Optional[Dict[str, str]] = None, timeout: int = 15, fetch: int = 3) -> str:
     merged_headers = dict(DEFAULT_HEADERS)
@@ -59,70 +68,62 @@ def fetch_text(url: str, headers: Optional[Dict[str, str]] = None, timeout: int 
         time.sleep(7)
     return None
 
+# def save_article(conn, bsn: int, sna: int, title: str, article_page: int , 
+#                  article_create_time : str , great_point : int , bad_point : int) -> None:
+#     with conn.cursor() as cursor:
+#         cursor.execute(
+#             """
+#             INSERT INTO project_article (bsn, sna, title, article_page, article_create_time, great_point, bad_point)
+#             VALUES (%s, %s, %s, %s, %s, %s, %s)
+#             ON DUPLICATE KEY UPDATE
+#                 title=VALUES(title),
+#                 article_page=VALUES(article_page),
+#                 article_create_time=VALUES(article_create_time),
+#                 great_point=VALUES(great_point),
+#                 bad_point=VALUES(bad_point)
+#             """,
+#             (bsn, sna, title, article_page,article_create_time,great_point,bad_point),
+#         )
 
 
-def save_article(conn, bsn: int, sna: int, title: str, article_page: int , 
-                 article_create_time : str , great_point : int , bad_point : int) -> None:
+# def save_nlp_page(conn, sna_article_page: str, article_url: str, content: str) -> None:
+#     with conn.cursor() as cursor:
+#         cursor.execute(
+#             """
+#             INSERT INTO project_NLP
+#                 (sna_article_page, NLP_item_code, NLP_content, article_url, extract_time, NLP_item, NLP_score)
+#             VALUES
+#                 ( %s, %s, %s, %s, NOW(), %s, %s)
+#             ON DUPLICATE KEY UPDATE
+#                 NLP_content=VALUES(NLP_content),
+#                 article_url=VALUES(article_url),
+#                 extract_time=VALUES(extract_time)
+#             """,
+#             (sna_article_page, 0, content, article_url, "", 0.0),
+#         )
+
+def save_data(conn, bsn: int, sna: int, game_name:str ,title: str,content: str, max_page: int , 
+              url: str ,article_create_time : str , great_point : int , bad_point : int):
     with conn.cursor() as cursor:
         cursor.execute(
             """
-            INSERT INTO project_article (bsn, sna, title, article_page, article_create_time, great_point, bad_point)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO project_datas
+                (bsn,sna,game_name,title,content,max_page,url,article_create_time,extract_time,great_point, bad_point)
+            VALUES
+                (%s,%s,%s,%s,%s,%s,%s,%s,NOW(),%s,%s)
             ON DUPLICATE KEY UPDATE
                 title=VALUES(title),
-                article_page=VALUES(article_page),
-                article_create_time=VALUES(article_create_time),
+                content=VALUES(content),
+                max_page=VALUES(max_page),
+                url=VALUES(url),
+                extract_time=VALUES(extract_time),
                 great_point=VALUES(great_point),
                 bad_point=VALUES(bad_point)
             """,
-            (bsn, sna, title, article_page,article_create_time,great_point,bad_point),
-        )
-        
-
-
-def save_nlp_page(conn, sna_article_page: str, article_url: str, content: str) -> None:
-    with conn.cursor() as cursor:
-        cursor.execute(
-            """
-            INSERT INTO project_NLP
-                (sna_article_page, NLP_item_code, NLP_content, article_url, extract_time, NLP_item, NLP_score)
-            VALUES
-                ( %s, %s, %s, %s, NOW(), %s, %s)
-            ON DUPLICATE KEY UPDATE
-                NLP_content=VALUES(NLP_content),
-                article_url=VALUES(article_url),
-                extract_time=VALUES(extract_time)
-            """,
-            (sna_article_page, 0, content, article_url, "", 0.0),
+            (bsn,sna,game_name,title,content,max_page,url,article_create_time,great_point,bad_point)
         )
 
-
-def build_article_page_url(url: str, page_no: int) -> str:
-    u = urlparse(url)
-    q = parse_qs(u.query)
-    keep = {}
-    for k in ("bsn", "snA"):
-        if k in q and q[k]:
-            keep[k] = q[k][0]
-
-    keep["page"] = str(page_no)
-
-    new_query = urlencode(keep, doseq=True)
-    return urlunparse((u.scheme, u.netloc, u.path, u.params, new_query, u.fragment))
-
-def parse_sna(url: str) -> Optional[int]:
-    parsed = urlparse(url)
-    query = parse_qs(parsed.query)
-    sna = query.get("snA")
-    if not sna:
-        return None
-    try:
-        return int(sna[0])
-    except ValueError:
-        return None
-
-
-def crawl_and_save(list_page_html: str, base_url: str) -> int:
+def crawl_and_save(list_page_html: str, base_url: str , Bsn :str ,game_name :str) -> int:
     items = parse_article_title_link(list_page_html, base_url)
     if items:
         print("FIRST_URL:", items[0].get("url"))
@@ -132,6 +133,8 @@ def crawl_and_save(list_page_html: str, base_url: str) -> int:
     conn = get_db_connection()
     saved = 0
     count = 0
+
+
     for item in items:
         url = item.get("url")
         title = item.get("title") or ""
@@ -143,17 +146,19 @@ def crawl_and_save(list_page_html: str, base_url: str) -> int:
         count +=1
         print(f"sna={sna},Article={count}/30")
         first_html = fetch_text(url)
-        GP,BP = parse_Great_Bad_point(first_html) or (0,0)
+        Great_point,Bad_point = parse_Great_Bad_point(first_html) or (0,0)
         post_time = parse_post_time(first_html)
         max_page = parse_max_page(first_html) or 1
-        save_article(conn, Bsn, sna, title, max_page,post_time,GP,BP)
+        # save_article(conn, Bsn, sna, title, max_page,post_time,GP,BP)
         pages = min(max_page,int(max_set_page))
         for page_no in range(1, pages + 1):
             page_url = build_article_page_url(url, page_no)
             page_html = first_html if page_no == 1 else fetch_text(page_url)
             content = parse_content_message(page_html) or ""
             sna_page_no = str(sna)+ "_" +str(page_no)
-            save_nlp_page(conn, sna_page_no, page_url, content)
+            # save_nlp_page(conn, sna_page_no, page_url, content)
+            save_data(conn,Bsn,sna,game_name,title,content,max_page,page_url,post_time,Great_point,Bad_point)
+
             saved += 1
             time.sleep(random.uniform(2.0, 4.0))
             print(f"Page={page_no}/{max_page}")
@@ -163,18 +168,20 @@ def crawl_and_save(list_page_html: str, base_url: str) -> int:
     return saved
 
 
-
-
 def main() -> None:
     base_url = Basehtml
     total = 0
-    for outer_page in range(1, int(page) + 1):
-        print(f"bsn={Bsn},Page={outer_page}/{page}")
-        list_url = f"{Basehtml}B.php?page={outer_page}&bsn={Bsn}"
-        list_html = fetch_text(list_url)
-        total += crawl_and_save(list_html, base_url)   
+    
+    Bsn_,game_name_ = gamename()
+    for i in range(len(Bsn_)) :
+        Bsn = Bsn_[i]
+        game_name = game_name_[i]
+        for outer_page in range(1, int(page) + 1):
+            print(f"bsn={Bsn},Page={outer_page}/{page}")
+            list_url = f"{Basehtml}B.php?page={outer_page}&bsn={Bsn}"
+            list_html = fetch_text(list_url)
+            total += crawl_and_save(list_html, base_url,Bsn,game_name)   
     print(f"Saved {total} pages.")
-
 
 if __name__ == "__main__":
     start_time = time.time()
