@@ -17,10 +17,8 @@ MYSQL_PORT = int(require("MYSQL_PORT"))
 MYSQL_DB = require("MYSQL_DB")
 
 Basehtml= require("Basehtml")
-Bsn = require("Bsn")
 page = require("page")
-max_set_page = require("max_set_page")
-
+max_set_page = require("Max_set_page")
 
 
 
