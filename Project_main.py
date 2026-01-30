@@ -20,7 +20,7 @@ from setting.setting import (
     page,
     max_set_page,
 )
-
+## 使用PyMySQL連線到MySQL
 def get_db_connection():
     return pymysql.connect(
         host=MYSQL_HOST,
@@ -31,7 +31,7 @@ def get_db_connection():
         charset="utf8mb4",
         autocommit=True
     )
-
+##定義HEADERS
 DEFAULT_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -42,6 +42,7 @@ DEFAULT_HEADERS = {
     "Accept-Language": "zh-TW,zh;q=0.9,en;q=0.8",
     "Connection": "keep-alive",
 }
+##讀取取遊戲名稱列表
 def gamename():
     p = Path("pratice_P/game.csv")
     bsn=[]
@@ -52,7 +53,7 @@ def gamename():
             bsn.append( row["Bsn"])
             game_name.append(row["Gamename"])           
     return bsn,game_name
-
+##測試爬蟲連線狀況
 def fetch_text(url: str, headers: Optional[Dict[str, str]] = None, timeout: int = 15, fetch: int = 3) -> str:
     merged_headers = dict(DEFAULT_HEADERS)
     if headers:
@@ -68,49 +69,16 @@ def fetch_text(url: str, headers: Optional[Dict[str, str]] = None, timeout: int 
         time.sleep(7)
     return None
 
-# def save_article(conn, bsn: int, sna: int, title: str, article_page: int , 
-#                  article_create_time : str , great_point : int , bad_point : int) -> None:
-#     with conn.cursor() as cursor:
-#         cursor.execute(
-#             """
-#             INSERT INTO project_article (bsn, sna, title, article_page, article_create_time, great_point, bad_point)
-#             VALUES (%s, %s, %s, %s, %s, %s, %s)
-#             ON DUPLICATE KEY UPDATE
-#                 title=VALUES(title),
-#                 article_page=VALUES(article_page),
-#                 article_create_time=VALUES(article_create_time),
-#                 great_point=VALUES(great_point),
-#                 bad_point=VALUES(bad_point)
-#             """,
-#             (bsn, sna, title, article_page,article_create_time,great_point,bad_point),
-#         )
-
-
-# def save_nlp_page(conn, sna_article_page: str, article_url: str, content: str) -> None:
-#     with conn.cursor() as cursor:
-#         cursor.execute(
-#             """
-#             INSERT INTO project_NLP
-#                 (sna_article_page, NLP_item_code, NLP_content, article_url, extract_time, NLP_item, NLP_score)
-#             VALUES
-#                 ( %s, %s, %s, %s, NOW(), %s, %s)
-#             ON DUPLICATE KEY UPDATE
-#                 NLP_content=VALUES(NLP_content),
-#                 article_url=VALUES(article_url),
-#                 extract_time=VALUES(extract_time)
-#             """,
-#             (sna_article_page, 0, content, article_url, "", 0.0),
-#         )
-
-def save_data(conn, bsn: int, sna: int, game_name:str ,title: str,content: str, max_page: int , 
+##儲存資料進MySQL
+def save_data(conn,bsn_sna_page:str ,bsn: int, sna: int, game_name:str ,title: str,content: str, max_page: int , 
               url: str ,article_create_time : str , great_point : int , bad_point : int):
     with conn.cursor() as cursor:
         cursor.execute(
             """
             INSERT INTO project_datas
-                (bsn,sna,game_name,title,content,max_page,url,article_create_time,extract_time,great_point, bad_point)
+                (bsn_sna_page,bsn,sna,game_name,title,content,max_page,url,article_create_time,extract_time,great_point, bad_point)
             VALUES
-                (%s,%s,%s,%s,%s,%s,%s,%s,NOW(),%s,%s)
+                (%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW(),%s,%s)
             ON DUPLICATE KEY UPDATE
                 title=VALUES(title),
                 content=VALUES(content),
@@ -120,21 +88,18 @@ def save_data(conn, bsn: int, sna: int, game_name:str ,title: str,content: str, 
                 great_point=VALUES(great_point),
                 bad_point=VALUES(bad_point)
             """,
-            (bsn,sna,game_name,title,content,max_page,url,article_create_time,great_point,bad_point)
+            (bsn_sna_page,bsn,sna,game_name,title,content,max_page,url,article_create_time,great_point,bad_point)
         )
-
+##爬取及儲存總整理
 def crawl_and_save(list_page_html: str, base_url: str , Bsn :str ,game_name :str) -> int:
     items = parse_article_title_link(list_page_html, base_url)
     if items:
         print("FIRST_URL:", items[0].get("url"))
-
     if not items:
         return 0
     conn = get_db_connection()
     saved = 0
     count = 0
-
-
     for item in items:
         url = item.get("url")
         title = item.get("title") or ""
@@ -149,25 +114,22 @@ def crawl_and_save(list_page_html: str, base_url: str , Bsn :str ,game_name :str
         Great_point,Bad_point = parse_Great_Bad_point(first_html) or (0,0)
         post_time = parse_post_time(first_html)
         max_page = parse_max_page(first_html) or 1
-        # save_article(conn, Bsn, sna, title, max_page,post_time,GP,BP)
         pages = min(max_page,int(max_set_page))
         for page_no in range(1, pages + 1):
             page_url = build_article_page_url(url, page_no)
             page_html = first_html if page_no == 1 else fetch_text(page_url)
             content = parse_content_message(page_html) or ""
-            sna_page_no = str(sna)+ "_" +str(page_no)
-            # save_nlp_page(conn, sna_page_no, page_url, content)
-            save_data(conn,Bsn,sna,game_name,title,content,max_page,page_url,post_time,Great_point,Bad_point)
+            bsn_sna_page = str(Bsn)+"_"+str(sna)+ "_" +str(page_no)
+            save_data(conn,bsn_sna_page,Bsn,sna,game_name,title,content,max_page,page_url,post_time,Great_point,Bad_point)
 
             saved += 1
             time.sleep(random.uniform(2.0, 4.0))
-            print(f"Page={page_no}/{max_page}")
-        
+            print(f"Page = {page_no}/{pages} , Max Page = {max_page} ")
     
     time.sleep(random.uniform(3.0, 6.0))
     return saved
 
-
+##主程式
 def main() -> None:
     base_url = Basehtml
     total = 0
