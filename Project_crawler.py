@@ -1,12 +1,23 @@
 from Project_units import parse_dt
 
-from pathlib import Path
 from typing import Optional,Dict
+from urllib.parse import urlparse, parse_qs,urljoin, urlencode, urlunparse ,parse_qs
 import re
 
-
 from bs4 import BeautifulSoup
-from urllib.parse import  urljoin
+
+def build_article_page_url(url: str, page_no: int) -> str:
+    u = urlparse(url)
+    q = parse_qs(u.query)
+    keep = {}
+    for k in ("bsn", "snA"):
+        if k in q and q[k]:
+            keep[k] = q[k][0]
+
+    keep["page"] = str(page_no)
+
+    new_query = urlencode(keep, doseq=True)
+    return urlunparse((u.scheme, u.netloc, u.path, u.params, new_query, u.fragment))
 
 def parse_article_title_link(html:str,base_html:str)->dict :
     soup =BeautifulSoup(html,"html.parser")
@@ -105,3 +116,14 @@ def parse_post_time(html:str) -> str :
     if not mtime :
         return None
     return parse_dt(mtime)
+
+def parse_sna(url: str) -> Optional[int]:
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+    sna = query.get("snA")
+    if not sna:
+        return None
+    try:
+        return int(sna[0])
+    except ValueError:
+        return None
