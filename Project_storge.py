@@ -70,15 +70,15 @@ def fetch_text(url: str, headers: Optional[Dict[str, str]] = None, timeout: int 
     return None
 
 ##儲存資料進MySQL
-def save_data(conn,bsn_sna_page:str ,bsn: int, sna: int, game_name:str ,title: str,content: str, max_page: int , 
-              url: str ,article_create_time : str , great_point : int , bad_point : int):
+def save_data(conn,bsn_sna_page:str ,bsn: int, sna: int, pages :int, game_name:str ,title: str,content: str
+              , max_page: int , url: str ,article_create_time : str , great_point : int , bad_point : int):
     with conn.cursor() as cursor:
         cursor.execute(
             """
             INSERT INTO project_datas
-                (bsn_sna_page,bsn,sna,game_name,title,content,max_page,url,article_create_time,extract_time,great_point, bad_point)
+                (bsn_sna_page,bsn,sna,pages,game_name,title,content,max_page,url,article_create_time,extract_time,great_point, bad_point)
             VALUES
-                (%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW(),%s,%s)
+                (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW(),%s,%s)
             ON DUPLICATE KEY UPDATE
                 title=VALUES(title),
                 content=VALUES(content),
@@ -88,7 +88,7 @@ def save_data(conn,bsn_sna_page:str ,bsn: int, sna: int, game_name:str ,title: s
                 great_point=VALUES(great_point),
                 bad_point=VALUES(bad_point)
             """,
-            (bsn_sna_page,bsn,sna,game_name,title,content,max_page,url,article_create_time,great_point,bad_point)
+            (bsn_sna_page,bsn,sna,pages,game_name,title,content,max_page,url,article_create_time,great_point,bad_point)
         )
 ##爬取及儲存總整理
 def crawl_and_save(list_page_html: str, base_url: str , Bsn :str ,game_name :str) -> int:
@@ -114,17 +114,20 @@ def crawl_and_save(list_page_html: str, base_url: str , Bsn :str ,game_name :str
         Great_point,Bad_point = parse_Great_Bad_point(first_html) or (0,0)
         post_time = parse_post_time(first_html)
         max_page = parse_max_page(first_html) or 1
-        pages = min(max_page,int(max_set_page))
-        for page_no in range(1, pages + 1):
+        if max_page >= int(max_set_page) :
+            pages = max_page -int(max_set_page)
+        else :
+            pages = 1 
+        for page_no in range(pages, max_page + 1):
             page_url = build_article_page_url(url, page_no)
             page_html = first_html if page_no == 1 else fetch_text(page_url)
             content = parse_content_message(page_html) or ""
             bsn_sna_page = str(Bsn)+"_"+str(sna)+ "_" +str(page_no)
-            save_data(conn,bsn_sna_page,Bsn,sna,game_name,title,content,max_page,page_url,post_time,Great_point,Bad_point)
-
+            save_data(conn,bsn_sna_page,Bsn,sna,page_no,game_name,title,content,max_page,page_url
+                      ,post_time,Great_point,Bad_point)
             saved += 1
             time.sleep(random.uniform(2.0, 4.0))
-            print(f"Page = {page_no}/{pages} , Max Page = {max_page} ")
+            print(f"Page = {page_no}/{max_set_page} , Max Page = {max_page} ")
     
     time.sleep(random.uniform(3.0, 6.0))
     return saved
