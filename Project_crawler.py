@@ -1,4 +1,4 @@
-from Project_units import parse_dt
+from Project_units import parse_dt,words_,clean_text
 
 from typing import Optional,Dict
 from urllib.parse import urlparse, parse_qs,urljoin, urlencode, urlunparse ,parse_qs
@@ -19,10 +19,10 @@ def build_article_page_url(url: str, page_no: int) -> str:
     new_query = urlencode(keep, doseq=True)
     return urlunparse((u.scheme, u.netloc, u.path, u.params, new_query, u.fragment))
 
-def parse_article_title_link(html:str,base_html:str)->dict :
+def parse_article_title_link(html:str,base_html:str)->list[Dict] :
     soup =BeautifulSoup(html,"html.parser")
     items : list[Dict] = []
-
+    EXCLUDE_KEYWORDS= words_()
     for td in soup.select(".b-list__main") :
         title_el = td.select_one("p.b-list__main__title")
         title = title_el.get_text(strip=True) if title_el else None
@@ -36,6 +36,8 @@ def parse_article_title_link(html:str,base_html:str)->dict :
                 continue
             href = a.get("href")
             title = a.get_text(strip=True) or title
+        if title and any(k in title for k in EXCLUDE_KEYWORDS):
+            continue
         items.append({"title": title, "url": urljoin(base_html, href)})
     return items
 
@@ -69,7 +71,6 @@ def parse_content_message(html: str) -> str | None:
 
         text = content_el.get_text(" ", strip=True)
         if text:
-            lines.append(f"【內文】{idx}")
             lines.append(text)
 
     comment_blocks = soup.select("span.comment_content")
@@ -79,8 +80,10 @@ def parse_content_message(html: str) -> str | None:
             br.replace_with(" ")
         txt = c.get_text(" ", strip=True)
         if txt:
-            lines.append(f"【留言】{idx}【{txt}")
-    final_text = " ".join(lines).strip()
+            lines.append(f"{txt}")
+            clean_lines = clean_text(lines)
+    final_text = " ".join(clean_text).strip()
+    
     return final_text if final_text else None
 
 def parse_Great_Bad_point(html: str) -> tuple[int, int] | None:
