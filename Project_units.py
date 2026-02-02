@@ -1,7 +1,8 @@
-from datetime import datetime
+from datetime import datetime , date
 import re
 from pathlib import Path
 import csv
+from typing import Union, Optional
 
 def parse_dt(dt_str:str) ->str :
     for fmt in ("%Y-%m-%d %H:%M:%S" ,"%Y/%m/%d %H:%M:%S","%Y-%b-%d %H:%M") :
@@ -13,11 +14,33 @@ def parse_dt(dt_str:str) ->str :
             continue
     return None
 
+def dayapart(dt: Optional[Union[str, date, datetime]]) -> Optional[int]:
+    if dt is None:
+        return None
+
+    # str → datetime
+    if isinstance(dt, str):
+        try:
+            if len(dt) == 10:
+                dt = date.fromisoformat(dt)
+            else:
+                dt = datetime.fromisoformat(dt)
+        except ValueError:
+            raise ValueError(f"Invalid date string: {dt}")
+
+    # datetime → date
+    if isinstance(dt, datetime):
+        dt = dt.date()
+
+    if not isinstance(dt, date):
+        raise TypeError(f"Unsupported type: {type(dt)}")
+
+    return (dt - date.today()).days
 
 def words_() -> None :
-    p = Path("pratece_P/forbiddenword.csv")
+    p = Path("pratice_P/forbiddenword.csv")
     words= []
-    with p.open("r",encoding="utf-8",newline=" ")  as f:
+    with p.open("r",encoding="utf-8",newline="")  as f:
         reader = csv.DictReader(f)
         for row in reader :
             words.append(row["words"])

@@ -8,6 +8,7 @@ import random
 import pymysql
 import requests
 
+from Project_units   import dayapart
 from Project_crawler import build_article_page_url,parse_article_title_link, parse_content_message
 from Project_crawler import parse_Great_Bad_point,parse_post_time,parse_sna, parse_max_page
 from setting.setting import (
@@ -102,7 +103,11 @@ def crawl_and_save(list_page_html: str, base_url: str , Bsn :str ,game_name :str
     count = 0
     for item in items:
         url = item.get("url")
+        first_html = fetch_text(url)
         title = item.get("title") or ""
+        post_time = parse_post_time(first_html)
+        if dayapart(post_time)< -180 :
+            continue
         if not url:
             continue
         sna = parse_sna(url)
@@ -110,15 +115,11 @@ def crawl_and_save(list_page_html: str, base_url: str , Bsn :str ,game_name :str
             continue
         count +=1
         print(f"sna={sna},Article={count}/30")
-        first_html = fetch_text(url)
+        
         Great_point,Bad_point = parse_Great_Bad_point(first_html) or (0,0)
-        post_time = parse_post_time(first_html)
+
         max_page = parse_max_page(first_html) or 1
-        if max_page >= int(max_set_page) :
-            pages = max_page -int(max_set_page)
-        else :
-            pages = 1 
-        for page_no in range(pages, max_page + 1):
+        for page_no in range(1, max_page + 1):
             page_url = build_article_page_url(url, page_no)
             page_html = first_html if page_no == 1 else fetch_text(page_url)
             content = parse_content_message(page_html) or ""
@@ -127,9 +128,9 @@ def crawl_and_save(list_page_html: str, base_url: str , Bsn :str ,game_name :str
                       ,post_time,Great_point,Bad_point)
             saved += 1
             time.sleep(random.uniform(2.0, 4.0))
-            print(f"Page = {page_no}/{max_set_page} , Max Page = {max_page} ")
+            print(f"Page = {page_no}/{max_page} ")
     
-    time.sleep(random.uniform(3.0, 6.0))
+    time.sleep(random.uniform(3.0, 4.0))
     return saved
 
 ##串接爬取、儲存、連接SQL

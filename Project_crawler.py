@@ -19,7 +19,7 @@ def build_article_page_url(url: str, page_no: int) -> str:
     new_query = urlencode(keep, doseq=True)
     return urlunparse((u.scheme, u.netloc, u.path, u.params, new_query, u.fragment))
 
-def parse_article_title_link(html:str,base_html:str)->list[Dict] :
+def parse_article_title_link(html:str,base_html:str)->dict :
     soup =BeautifulSoup(html,"html.parser")
     items : list[Dict] = []
     EXCLUDE_KEYWORDS= words_()
@@ -58,32 +58,32 @@ def parse_max_page(html: str) -> int:
 
     return max(pages)
 
+
 def parse_content_message(html: str) -> str | None:
     soup = BeautifulSoup(html, "html.parser")
 
     lines: list[str] = []
 
-    content_blocks = soup.select("div.c-article__content")
-
-    for idx, content_el in enumerate(content_blocks, start=1):
+    # 主文
+    for content_el in soup.select("div.c-article__content"):
         for br in content_el.select("br"):
             br.replace_with(" ")
-
         text = content_el.get_text(" ", strip=True)
         if text:
             lines.append(text)
 
-    comment_blocks = soup.select("span.comment_content")
-
-    for idx, c in enumerate(comment_blocks, start=1):
+    # 留言
+    for c in soup.select("span.comment_content"):
         for br in c.select("br"):
             br.replace_with(" ")
         txt = c.get_text(" ", strip=True)
         if txt:
-            lines.append(f"{txt}")
-            clean_lines = clean_text(lines)
-    final_text = " ".join(clean_text).strip()
-    
+            lines.append(txt)
+
+    # 統一清洗（重點）
+    clean_lines = [clean_text(s) for s in lines if s]
+
+    final_text = " ".join(clean_lines).strip()
     return final_text if final_text else None
 
 def parse_Great_Bad_point(html: str) -> tuple[int, int] | None:
