@@ -129,8 +129,8 @@ def crawl_and_save(list_page_html: str, base_url: str , Bsn :str ,game_name :str
     time.sleep(random.uniform(3.0, 6.0))
     return saved
 
-##主程式
-def main() -> None:
+##串接爬取、儲存、連接SQL
+def storge() -> None:
     base_url = Basehtml
     total = 0
     
@@ -147,6 +147,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     start_time = time.time()
-    main()
+    storge()
     alltime = time.time()-start_time
     print(f"程式耗時：{int(alltime/3600)}小時，{int((alltime%3600)/60)}分鐘，{int(alltime%60)}秒")
