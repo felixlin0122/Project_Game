@@ -19,7 +19,6 @@ from setting.setting import (
     MYSQL_DB,
     Basehtml,
     page,
-    max_set_page,
 )
 ## 使用PyMySQL連線到MySQL
 def get_db_connection():
@@ -45,7 +44,8 @@ DEFAULT_HEADERS = {
 }
 ##讀取取遊戲名稱列表
 def gamename():
-    p = Path("pratice_P/game.csv")
+    BASE_DIR = Path(__file__).resolve().parents
+    p = Path( "game.csv")
     bsn=[]
     game_name=[]
     with p.open("r",encoding="utf-8",newline="") as f :

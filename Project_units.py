@@ -38,7 +38,7 @@ def dayapart(dt: Optional[Union[str, date, datetime]]) -> Optional[int]:
     return (dt - date.today()).days
 
 def words_() -> None :
-    p = Path("pratice_P/forbiddenword.csv")
+    p = Path("forbiddenword.csv")
     words= []
     with p.open("r",encoding="utf-8",newline="")  as f:
         reader = csv.DictReader(f)
@@ -55,6 +55,5 @@ def clean_text(text:str) ->str:
     text = EMAIL_PATTERN.sub("",text)
     text = HASH_BLOCK_PATTERN.sub("",text)
     return text
-
 
 
