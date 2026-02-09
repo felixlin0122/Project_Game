@@ -37,15 +37,6 @@ def dayapart(dt: Optional[Union[str, date, datetime]]) -> Optional[int]:
 
     return (dt - date.today()).days
 
-def words_() -> None :
-    p = Path("forbiddenword.csv")
-    words= []
-    with p.open("r",encoding="utf-8",newline="")  as f:
-        reader = csv.DictReader(f)
-        for row in reader :
-            words.append(row["words"])
-    return words
-
 def clean_text(text:str) ->str:
     URL_PATTERN = re.compile(r"https?://\S+|www\.\S+", re.I)
     EMAIL_PATTERN = re.compile(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+")

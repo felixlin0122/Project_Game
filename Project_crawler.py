@@ -1,4 +1,5 @@
-from Project_units import parse_dt,words_,clean_text
+from Project_units import parse_dt,clean_text
+from setting import words
 
 from typing import Optional,Dict
 from urllib.parse import urlparse, parse_qs,urljoin, urlencode, urlunparse ,parse_qs
@@ -22,7 +23,6 @@ def build_article_page_url(url: str, page_no: int) -> str:
 def parse_article_title_link(html:str,base_html:str)->dict :
     soup =BeautifulSoup(html,"html.parser")
     items : list[Dict] = []
-    EXCLUDE_KEYWORDS= words_()
     for td in soup.select(".b-list__main") :
         title_el = td.select_one("p.b-list__main__title")
         title = title_el.get_text(strip=True) if title_el else None
@@ -36,7 +36,7 @@ def parse_article_title_link(html:str,base_html:str)->dict :
                 continue
             href = a.get("href")
             title = a.get_text(strip=True) or title
-        if title and any(k in title for k in EXCLUDE_KEYWORDS):
+        if title and any(k in title for k in words):
             continue
         items.append({"title": title, "url": urljoin(base_html, href)})
     return items
