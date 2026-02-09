@@ -11,7 +11,7 @@ import requests
 from Project_units   import dayapart
 from Project_crawler import build_article_page_url,parse_article_title_link, parse_content_message
 from Project_crawler import parse_Great_Bad_point,parse_post_time,parse_sna, parse_max_page
-from setting.setting import (
+from setting import (
     MYSQL_HOST,
     MYSQL_USER,
     MYSQL_PASSWORD,
@@ -19,9 +19,12 @@ from setting.setting import (
     MYSQL_DB,
     Basehtml,
     page,
+    bsn_,
+    game_name_
 )
 ## 使用PyMySQL連線到MySQL
 def get_db_connection():
+
     return pymysql.connect(
         host=MYSQL_HOST,
         user=MYSQL_USER,
@@ -55,20 +58,23 @@ def gamename():
             game_name.append(row["Gamename"])           
     return bsn,game_name
 ##測試爬蟲連線狀況
-def fetch_text(url: str, headers: Optional[Dict[str, str]] = None, timeout: int = 15, fetch: int = 3) -> str:
+def fetch_text(url: str, headers=None, timeout: int = 15, fetch: int = 3) -> str | None:
     merged_headers = dict(DEFAULT_HEADERS)
     if headers:
         merged_headers.update(headers)
     for i in range(fetch):
-        try :
-            resp = requests.get(url, headers=merged_headers, timeout=timeout)
-            if resp.status_code== 200 :
+        try:
+            resp = requests.get(url, headers=merged_headers, timeout=timeout, allow_redirects=True)
+            if resp.status_code == 200:
                 return resp.text
-            print(f"[WARN] {resp.status_code} {url}")
-        except Exception as e :
-            print(f"ERROR:{e}")
+
+            snippet = resp.text[:300].replace("\n", " ")
+            print(f"[WARN] {resp.status_code} final_url={resp.url} len={len(resp.text)} snippet={snippet}")
+
+        except Exception as e:
+            print(f"[ERROR] {type(e).__name__}: {e} url={url}")
+
         time.sleep(7)
-    return None
 
 ##儲存資料進MySQL
 def save_data(conn,bsn_sna_page:str ,bsn: int, sna: int, pages :int, game_name:str ,title: str,content: str
@@ -138,15 +144,15 @@ def storge() -> None:
     base_url = Basehtml
     total = 0
     
-    Bsn_,game_name_ = gamename()
-    for i in range(len(Bsn_)) :
-        Bsn = Bsn_[i]
+    # Bsn_,game_name_ = gamename()
+    for i in range(len(bsn_)) :
+        bsn = bsn_[i]
         game_name = game_name_[i]
         for outer_page in range(1, int(page) + 1):
-            print(f"bsn={Bsn},Page={outer_page}/{page}")
-            list_url = f"{Basehtml}B.php?page={outer_page}&bsn={Bsn}"
+            print(f"bsn={bsn},Page={outer_page}/{page}")
+            list_url = f"{Basehtml}B.php?page={outer_page}&bsn={bsn}"
             list_html = fetch_text(list_url)
-            total += crawl_and_save(list_html, base_url,Bsn,game_name)   
+            total += crawl_and_save(list_html, base_url,bsn,game_name)   
     print(f"Saved {total} pages.")
 
 if __name__ == "__main__":
