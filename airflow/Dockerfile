@@ -6,11 +6,9 @@ RUN pip install --no-cache-dir \
     beautifulsoup4 \
     lxml \
     pymysql \
-    python-dotenv
-RUN pip install --no-cache-dir \    
-    beautifulsoup4 \
-    requests \
-    pandas
+    python-dotenv \
+    pandas \
+    groq
 
 USER airflow
 
