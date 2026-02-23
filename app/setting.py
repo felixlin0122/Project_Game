@@ -57,3 +57,6 @@ game_name_ = ["神魔之塔"]
 bsn_ = [23805]
 
 words = ["朋友", "兌換", "邀請碼", "指南", "進板圖", "曬卡", "集中串"]
+
+# Groq
+GROQ_KEYS = os.getenv("GROQ_API_KEYS").split(",")
