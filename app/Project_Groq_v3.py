@@ -31,7 +31,7 @@ RETRY = 4
 INPUT_MAX_CHARS = 800
 
 # JSON mode 的輸出上限（太小容易輸出不完整；太大浪費 TPM）
-MAX_TOKENS = 220
+MAX_TOKENS = 300
 
 # 粗略字元節流（不是 TPM）：用來減少 burst
 CHARS_PER_MINUTE_PER_KEY = 12000
