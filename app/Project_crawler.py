@@ -7,6 +7,8 @@ import re
 from bs4 import BeautifulSoup
 from setting import (words)
 
+from __future__ import annotations
+
 def build_article_page_url(url: str, page_no: int) -> str:
     u = urlparse(url)
     q = parse_qs(u.query)
@@ -131,3 +133,27 @@ def parse_sna(url: str) -> Optional[int]:
         return int(sna[0])
     except ValueError:
         return None
+
+
+def detect_guard_page(html: str) -> bool:
+
+    soup = BeautifulSoup(html or "", "html.parser")
+    title = (soup.title.get_text(strip=True) if soup.title else "")
+
+    text = soup.get_text(" ", strip=True)
+    text_l = text.lower()
+    title_l = title.lower()
+
+    keywords = [
+        "兒少", "保護", "年齡", "限制級", "登入", "請先登入", "需要登入", "age", "adult"
+    ]
+
+    if any(k.lower() in title_l for k in keywords) or any(k.lower() in text_l for k in keywords):
+        ev = title if title else (text[:120] + "..." if len(text) > 120 else text)
+        return True
+    
+    must_have = soup.select_one("div.c-article__content") or soup.select_one(".comment_content")
+    if not must_have:
+        return True
+
+    return False

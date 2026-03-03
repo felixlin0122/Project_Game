@@ -15,7 +15,7 @@ import requests
 
 from Project_units   import dayapart
 from Project_crawler import build_article_page_url,parse_article_title_link, parse_content_message
-from Project_crawler import parse_Great_Bad_point,parse_post_time,parse_sna, parse_max_page
+from Project_crawler import parse_Great_Bad_point,parse_post_time,parse_sna, parse_max_page,detect_guard_page
 from setting import (
     MYSQL_HOST,
     MYSQL_USER,
@@ -125,6 +125,8 @@ def crawl_and_save(list_page_html: str, base_url: str , Bsn :str ,game_name :str
     for item in items:
         url = item.get("url")
         first_html = fetch_text(url)
+        if detect_guard_page(first_html) :
+            continue
         title = item.get("title") or ""
         post_time = parse_post_time(first_html)
         if dayapart(post_time)< -180 :

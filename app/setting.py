@@ -53,10 +53,12 @@ Basehtml = "https://forum.gamer.com.tw/"
 page = 20
 
 # 測試用的小清單
-game_name_ = ["神魔之塔"]
-bsn_ = [23805]
+game_name_ = ["神魔之塔","SD鋼彈G世代永恆","明日方舟:終末地"]
+bsn_ = [23805,74906,74604]
 
 words = ["朋友", "兌換", "邀請碼", "指南", "進板圖", "曬卡", "集中串"]
 
 # Groq
-GROQ_KEYS = os.getenv("GROQ_API_KEYS").split(",")
+raw = os.getenv("GROQ_API_KEYS", "")
+GROQ_API_KEY = [k.strip() for k in raw.split(",") if k.strip()]
+
