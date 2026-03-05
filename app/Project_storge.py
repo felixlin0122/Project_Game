@@ -58,57 +58,75 @@ DEFAULT_HEADERS = {
 # 你原本就有 DEFAULT_HEADERS 的話保留
 # DEFAULT_HEADERS = {...}
 
-RETRY_STATUS = {429, 500, 502, 503, 504}
+# RETRY_STATUS = {429, 500, 502, 503, 504}
 
-def _decode_html(resp: requests.Response) -> str:
-    """
-    避免 resp.text 因 encoding 推斷錯誤導致亂碼。
-    """
-    enc = resp.apparent_encoding or resp.encoding or "utf-8"
-    try:
-        return resp.content.decode(enc, errors="replace")
-    except Exception:
-        return resp.content.decode("utf-8", errors="replace")
+# def _decode_html(resp: requests.Response) -> str:
+#     """
+#     避免 resp.text 因 encoding 推斷錯誤導致亂碼。
+#     """
+#     enc = resp.apparent_encoding or resp.encoding or "utf-8"
+#     try:
+#         return resp.content.decode(enc, errors="replace")
+#     except Exception:
+#         return resp.content.decode("utf-8", errors="replace")
 
-def fetch_text(url: str, headers=None, timeout: int = 15, fetch: int = 3) -> Optional[str]:
+# def fetch_text(url: str, headers=None, timeout: int = 15, fetch: int = 3) -> Optional[str]:
+#     merged_headers = dict(DEFAULT_HEADERS)
+#     if headers:
+#         merged_headers.update(headers)
+
+#     backoff = 10.0  # 指數退避起始秒數（可調）
+
+#     with requests.Session() as session:
+#         for attempt in range(1, fetch + 1):
+#             try:
+#                 resp = session.get(url, headers=merged_headers, timeout=timeout, allow_redirects=True)
+#                 html = _decode_html(resp)
+
+#                 if resp.status_code == 200:
+#                     return html
+
+#                 snippet = html[:300].replace("\n", " ")
+#                 print(f"[WARN] {resp.status_code} attempt={attempt}/{fetch} final_url={resp.url} len={len(html)} snippet={snippet}")
+
+#                 # 非重試型狀態碼：直接回傳（上層可做 skip/mark）
+#                 if resp.status_code not in RETRY_STATUS:
+#                     return None
+
+#                 # 429 優先尊重 Retry-After
+#                 ra = resp.headers.get("Retry-After")
+#                 if ra:
+#                     sleep_s = min(float(ra), 30.0)
+#                 else:
+#                     sleep_s = min(backoff + random.uniform(0, 0.7), 30.0)
+#                     backoff = min(backoff * 2, 30.0)
+
+#             except requests.RequestException as e:
+#                 print(f"[ERROR] {type(e).__name__}: {e} attempt={attempt}/{fetch} url={url}")
+#                 sleep_s = min(backoff + random.uniform(0, 0.7), 30.0)
+#                 backoff = min(backoff * 2, 30.0)
+
+#             time.sleep(sleep_s)
+
+#     return None
+def fetch_text(url: str, headers=None, timeout: int = 15, fetch: int = 3) -> str | None:
     merged_headers = dict(DEFAULT_HEADERS)
     if headers:
         merged_headers.update(headers)
+    for i in range(fetch):
+        try:
+            resp = requests.get(url, headers=merged_headers, timeout=timeout, allow_redirects=True)
+            if resp.status_code == 200:
+                return resp.text
 
-    backoff = 1.0  # 指數退避起始秒數（可調）
+            snippet = resp.text[:300].replace("\n", " ")
+            print(f"[WARN] {resp.status_code} final_url={resp.url} len={len(resp.text)} snippet={snippet}")
 
-    with requests.Session() as session:
-        for attempt in range(1, fetch + 1):
-            try:
-                resp = session.get(url, headers=merged_headers, timeout=timeout, allow_redirects=True)
-                html = _decode_html(resp)
+        except Exception as e:
+            print(f"[ERROR] {type(e).__name__}: {e} url={url}")
 
-                if resp.status_code == 200:
-                    return html
+        time.sleep(random.uniform(10,15))
 
-                snippet = html[:300].replace("\n", " ")
-                print(f"[WARN] {resp.status_code} attempt={attempt}/{fetch} final_url={resp.url} len={len(html)} snippet={snippet}")
-
-                # 非重試型狀態碼：直接回傳（上層可做 skip/mark）
-                if resp.status_code not in RETRY_STATUS:
-                    return None
-
-                # 429 優先尊重 Retry-After
-                ra = resp.headers.get("Retry-After")
-                if ra:
-                    sleep_s = min(float(ra), 30.0)
-                else:
-                    sleep_s = min(backoff + random.uniform(0, 0.7), 30.0)
-                    backoff = min(backoff * 2, 30.0)
-
-            except requests.RequestException as e:
-                print(f"[ERROR] {type(e).__name__}: {e} attempt={attempt}/{fetch} url={url}")
-                sleep_s = min(backoff + random.uniform(0, 0.7), 30.0)
-                backoff = min(backoff * 2, 30.0)
-
-            time.sleep(sleep_s)
-
-    return None
 
 ##儲存資料進MySQL
 def save_data(conn,bsn_sna_page:str ,bsn: int, sna: int, pages :int, game_name:str ,title: str,content: str
@@ -145,7 +163,7 @@ def crawl_and_save(list_page_html: str, base_url: str , Bsn :str ,game_name :str
     for item in items:
         url = item.get("url")
         first_html = fetch_text(url)
-        if detect_guard_page(first_html) :
+        if detect_guard_page(first_html) == True:
             continue
         title = item.get("title") or ""
         post_time = parse_post_time(first_html)
@@ -180,9 +198,6 @@ def crawl_and_save(list_page_html: str, base_url: str , Bsn :str ,game_name :str
 def storge() -> None:
     base_url = Basehtml
     total = 0
-    
-
-     
     for i in range(len(bsn_)) :
         bsn = bsn_[i]
         game_name = game_name_[i]

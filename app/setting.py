@@ -49,8 +49,8 @@ MYSQL_PORT = int(getenv_any(["MYSQL_PORT"], "3306"))
 MYSQL_DB = getenv_any(["MYSQL_DB", "MYSQL_DATABASE"], "bahamut")
 
 # 初始值
-Basehtml = "https://forum.gamer.com.tw/"
-page = 20
+Basehtml = getenv_any(["Basehtml"],"https://forum.gamer.com.tw/")
+page = 3
 
 # 測試用的小清單
 game_name_ = ["神魔之塔","SD鋼彈G世代永恆","明日方舟:終末地"]
