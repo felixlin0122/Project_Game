@@ -28,7 +28,7 @@ PER_KEY_WORKERS = 1
 RETRY = 4
 
 # 文本截斷長度：越小越省 TPM、越不容易 429，但資訊也少
-INPUT_MAX_CHARS = 800
+INPUT_MAX_CHARS = 500
 
 # JSON mode 的輸出上限（太小容易輸出不完整；太大浪費 TPM）
 MAX_TOKENS = 300
@@ -61,7 +61,7 @@ def clip_text(text: str, max_chars: int = INPUT_MAX_CHARS) -> str:
     tail = t[-250:]
     return head + "\n...\n" + tail
 
-def clip_text_more(text: str, max_chars: int = 500) -> str:
+def clip_text_more(text: str, max_chars: int = 300) -> str:
     """
     遇到 400/context/too long 等情況時，做一次更激進的縮短再重送。
     """

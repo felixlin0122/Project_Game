@@ -21,8 +21,14 @@ with DAG(
 
     groq = BashOperator(
         task_id="GROQ",
-        bash_command="python /opt/airflow/app/Project_GROQ.py"
+        bash_command="python /opt/airflow/app/Project_GROQ_v3.py",
+    )
+
+    toexcel = BashOperator(
+        task_id="toexcel",
+        bash_command="python /opt/airflow/app/Project_to_excel.py",
     )
 
     crawl >> normalize
     crawl >> groq
+    [groq,normalize]  >> toexcel
