@@ -83,6 +83,7 @@ def embed_and_upsert(conn, batch_size=500):
     conn.commit()
     print(f"本批完成：{len(rows)} 筆")
     return len(rows)
+
 def embed_and_upsert_all(conn, batch_size=500):
     total = 0
 
@@ -97,26 +98,7 @@ def embed_and_upsert_all(conn, batch_size=500):
 
     print("全部 chunk 已索引完成")
 
-def retrieve(question, top_k=5):
-    query_vector = model.encode(question).tolist()
 
-    results = client.search(
-        collection_name=COLLECTION_NAME,
-        query_vector=query_vector,
-        limit=top_k
-    )
-
-    contexts = []
-
-    for r in results:
-        contexts.append({
-            "score": r.score,
-            "title": r.payload.get("title"),
-            "game_name": r.payload.get("game_name"),
-            "text": r.payload.get("text")
-        })
-
-    return contexts
 
 def ensure_collection():
     collections = client.get_collections().collections
@@ -133,36 +115,7 @@ def ensure_collection():
 
 
 
-def answer_with_rag(question):
-    contexts = retrieve(question, top_k=5)
 
-    context_text = "\n\n".join([
-        f"【資料{i+1}】\n標題：{c['title']}\n遊戲：{c['game_name']}\n內容：{c['text']}"
-        for i, c in enumerate(contexts)
-    ])
-
-    prompt = f"""
-你是一個遊戲論壇輿情分析助理。
-請只根據下方資料回答問題，不要自行編造。
-如果資料不足，請回答「目前資料不足以判斷」。
-
-問題：
-{question}
-
-可參考資料：
-{context_text}
-"""
-
-    response = groq_client.chat.completions.create(
-        model="llama-3.1-8b-instant",
-        messages=[
-            {"role": "system", "content": "請使用繁體中文回答，並根據提供資料進行分析。"},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.2
-    )
-
-    return response.choices[0].message.content
 
 if __name__ == "__main__" :
     COLLECTION_NAME = "bahamut_forum_chunks"
@@ -176,5 +129,4 @@ if __name__ == "__main__" :
     embed_and_upsert_all(conn, batch_size=500)
     conn.close()
 
-    # question = input("請輸入想問的問題：")
-    # answer_with_rag(question)
+

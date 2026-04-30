@@ -5,8 +5,8 @@ from datetime import datetime
 with DAG(
     dag_id="bahamut_pipeline",
     start_date=datetime(2024, 1, 1),
-    # schedule="0 6 * * *", ## (*,*,*,*,*)
-    schedule = "* * * * *" ,
+    # schedule="0 6 * * *"
+    schedule = None ,
     catchup=False,
 ) as dag:
 
@@ -39,27 +39,7 @@ with DAG(
         task_id="embeddings",
         bash_command="python /opt/airflow/app/index_in_qdrant.py",
     )
-
-    upsert_vector_db = BashOperator(
-        task_id="vector_db",
-        bash_command="python /opt/airflow/app/Project_to_excel.py",
-    )
     
-    crawl >> normalize >> build_chunk >> create_embeddings >> upsert_vector_db
+    crawl >> normalize >> build_chunk >> create_embeddings 
     # crawl >> groq >> toexcel
     # [normalize,groq] >> toexcel
-=======
-    groq = BashOperator(
-        task_id="GROQ",
-        bash_command="python /opt/airflow/app/Project_GROQ_v3.py",
-    )
-
-    toexcel = BashOperator(
-        task_id="toexcel",
-        bash_command="python /opt/airflow/app/Project_to_excel.py",
-    )
-
-    crawl >> normalize
-    crawl >> groq
-    [groq,normalize]  >> toexcel
->>>>>>> docker-compose
