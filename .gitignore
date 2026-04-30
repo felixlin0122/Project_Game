@@ -214,3 +214,8 @@ game.csv
 # rag
 hf_cache/
 qdrant_storage/
+=======
+#rag
+hf_cache/
+qdrant_storge/
+>>>>>>> docker-compose
