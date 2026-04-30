@@ -8,7 +8,9 @@ RUN pip install --no-cache-dir \
     pymysql \
     python-dotenv \
     pandas \
-    groq
+    groq \
+    qdrant-client \
+    sentence-transformers
 
 USER airflow
 

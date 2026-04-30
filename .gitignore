@@ -210,3 +210,7 @@ __marimo__/
 test.py
 forbiddenword.csv
 game.csv
+
+# rag
+hf_cache/
+qdrant_storage/

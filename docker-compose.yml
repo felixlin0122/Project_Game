@@ -34,6 +34,7 @@ services:
         condition: service_healthy
     volumes:
       - ./app:/app
+      - ./hf_cache:/root/.cache/huggingface
     command: ["python", "main.py"]
     restart: "no"
 
@@ -96,6 +97,15 @@ services:
       - ./app:/opt/airflow/app
     command: scheduler
     restart: unless-stopped
+
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    ports:
+      - "6333:6333"
+    volumes:
+      - ./qdrant_storage:/qdrant/storage
 
 volumes:
   mysql_data_local:
